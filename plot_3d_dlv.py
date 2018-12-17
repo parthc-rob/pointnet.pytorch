@@ -11,9 +11,21 @@ def main(args):
 	# df = df.drop(df[df[3] < 1e-4].index)
 	df = pandas.read_csv("points.csv",header=None)
 	#dropping DLV points with likelihood < 1e-4
-	df = df.truncate(before = args.num_plane*6038,after=args.num_points)
-	df = df.drop(df[df[3] < 3e-1].index)
 
+	####### reiterate over planes
+	
+	df = df.truncate(before = args.num_plane*args.plane_points,
+		after=args.num_plane*args.plane_points + args.num_points)
+
+	threshold = 3e-1
+
+	# #drops rows with likelihood < threshold
+	df = df.drop(df[df[3] < threshold].index)
+	
+	#zeros out likelihood of rows < threshold
+	# df[3] = np.where(df[3] < threshold, 0, df[3])
+	# df.loc[df[3] < threshold, 3] = df[3].min()
+	
 	data = df.values
 
 	# data = np.loadtxt(open("points.csv", "rb"), delimiter=",")
@@ -31,16 +43,21 @@ def main(args):
 	# cdata = zdata
 
 	# print(xdata.shape)
-	# ### show 3d plot
+	### show 3d plot
 	# ax.scatter3D(xdata, ydata, zdata,c=cdata, cmap='viridis', linewidth=0.1,s=5)#, c=cdata, cmap='Reds')
 	# plt.show()
 
-	heatmap, xedges, yedges = np.histogram2d(xdata*(ydata.min()/ydata.max()), ydata, bins=50)
+	heatmap, xedges, yedges = np.histogram2d(
+	 (xdata - xdata.min())/(xdata.max() - xdata.min()),
+	 (ydata - ydata.min())/(ydata.max() - ydata.min()),
+	  bins=50)
 	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
 	plt.clf()
 	plt.imshow(heatmap.T, extent=extent, origin='lower')
-	plt.show()
+	plt.savefig('dlv_' + str(args.num_plane) + '.png')
+	# plt.show()
+
 if __name__ == '__main__':
 
 	# print("hello")
@@ -51,7 +68,14 @@ if __name__ == '__main__':
 	p = argparse.ArgumentParser()
 
 	# p.add_argument("--num_points", default='/home/parthc/pgpd/train_data/0905/pos/', type=str, help="where point csvs are")
-	p.add_argument("--num_points", default=6038, type=int, help="points to plot from sub DLV ")
+	
+	# this is a cop out of not dividing points into different planes, manually numbering
+	p.add_argument("--num_points", default=5999, type=int, help="points to plot from sub DLV ")
+	p.add_argument("--plane_points", default=5999, type=int, help="no of pts in one plane of subDLV ")
+	p.add_argument("--width", default=99, type=int, help="points to plot from sub DLV ")
+	p.add_argument("--height", default=60, type=int, help="points to plot from sub DLV ")
+	
+
 	p.add_argument("--num_plane", default=0, type=int, help="points to plot from sub DLV ")
 	
 	#6038 corresponds to 1st plane
